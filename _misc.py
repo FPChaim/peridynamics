@@ -1,7 +1,7 @@
 '''Provides some miscellaneous not directly related to peridynamics'''
 
 import os
-from time import strftime #,sleep
+from time import strftime
 import pickle
 import numpy as np
 import peridynamics as pd
@@ -28,9 +28,6 @@ def progress_printer(values,fmt='|%b| %p %',bar_sym='-',bar_sep=116,prec=[2,2,2]
     - check_val: 
     - flush: flush the printing area, allowing for more prints to be show in a short period of time. Can cause a heavy impact on performance.'''
     
-    #from time import sleep
-    #from numpy import np.shape,np.ceil
-    
     if np.shape(values)==():
         values=[values]
     
@@ -42,7 +39,6 @@ def progress_printer(values,fmt='|%b| %p %',bar_sym='-',bar_sep=116,prec=[2,2,2]
     bar=f'{bar:<{bar_sep}}'
 
     percent=f'{values[0]*100:.{prec[0]}f}'
-    #percent=f'{percent:{left_fill[0]}>{righ_fill[0]+1+prec[0]}}'
     percent=f'{percent:{left_fill[0]}>{3+1+prec[0]}}'
     # 3 refers to 3 integral decimals (100), 1 to the comma and prec[0]=2 refers to 2 decimal cases
     # EX: 100.00 --> 3+1+2 = 5 digits
@@ -70,14 +66,8 @@ def progress_printer(values,fmt='|%b| %p %',bar_sym='-',bar_sep=116,prec=[2,2,2]
     else:
         print(fmt,end=line_end,flush=flush)
 
-# import numpy as np
-# from time import sleep
-    
-# for i,j in zip(np.sort(np.random.rand(100)),np.arange(1,101)):
-#     progress_printer([i,j],fmt='|%b| %p % eta: %v s',bar_sep=50,right_fill_for_value=3)
-#     sleep(0.1)
-
 class indices_by_conditions:
+    '''Verbose class to help in getting arrays inidices that satisfies given conditions'''
 
     def __init__(self) -> None:
         self._indices=[]
@@ -122,17 +112,6 @@ class indices_by_conditions:
         self._indices=unique(self._indices)
 
         return self._indices
- 
-# teste=indices_by_conditions()
-# ###########################################
-# teste.add_condition(np.array([1,2,3,4])<3)
-# teste.and_condition(np.array([1,2,3,4])<2)
-# teste.and_condition(np.array([1,2,3,4])>10)
-# teste.or_condition(np.array([1,2,3,4])<3)
-# ###########################################
-# teste.add_condition(np.array([1,2,3,4])>3)
-# ###########################################
-# teste.get_indices()
 
 def save_object(obj,name:str='%Y-%m-%d-%v.pickle',folder:str='',silent:bool=False) -> None:
     r'''Input parameters:
@@ -185,8 +164,6 @@ def save_object(obj,name:str='%Y-%m-%d-%v.pickle',folder:str='',silent:bool=Fals
     pd.Model:'model'}
 
     try:
-        # for i,j in zip(['%v'],[var_names[obj.__class__]]): # custom name formatting with plot attributes
-        #     name=name.replace(i,j)
         name=name.replace('%v',var_names[obj.__class__]) # custom name formatting with plot attributes
     except KeyError:
         name=name.replace('%v','')
