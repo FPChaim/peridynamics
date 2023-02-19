@@ -3,14 +3,18 @@
 from functools import cached_property as _cached_property
 import numpy as np
 import matplotlib.pyplot as plt
-from peridynamics._plot_helpers import get_figure_relative_unit
-from peridynamics.general_functions import Damage
+import peridynamics as pd
 
 class BoundaryConditions:
     '''A class that one should intializate as an object, e.g: bc=BoundaryConditions() and use one of the following methods to get started:
     - set_body_forces
     - set_displacement_constraints
     - set_velocities_constraints
+
+    It's also possible to manually interact with the family by utilizing the following methods for debugging purposes, though the solvers do that automatically:
+    - compute_dofj(family)
+    - compute_noFail_ij(family)
+    - initialize_brokenBonds(family)
     
     Input:
     
@@ -20,19 +24,39 @@ class BoundaryConditions:
 
     Updates the following class parameters:
     
-    - bodyForce: structured np.array of body force. See the method set_body_forces for more info
-    - b: Nx2 np.array of body force
-    - bb: 2N np.array of body force corrected with the set constraints
-    - damage: 
-    - disp: structured np.array of displacement constraints. See the method set_displacement_constraints for more info
-    - vel: structured np.array of displacement velocities. See the method set_displacement_constraints for more info
-    - noFail: set of nodes for which we have no fail condition (mu = 1 always)
-    - bc_set: 2Nx3 np.array with the following structure:
+    - b: Nx2 array of body force
+    - bb: 2N array of body force corrected with the set constraints
+    - bc_set: contains the set of constrained degrees of freedom on the first collumn and its corresponding value on the second collumn; the third collumn contains the corresponding dof velocity
+        2Nx3 array with the following structure:
         [Node index (2N), Displacement constraint value (2N), Velocity constraint value (2N)]
-    - ndof: number of the mesh degree of freedoms
+    - bodyForce (need to utilize the method set_body_forces): structured array with the following configuration:
+        [Node index, Force x value, Force y value]
+        Where:
+        - Node index: nodes where the stresses where applied | type: array of ints
+        - Force x value: values of the force in the x direction | type: arry of floats
+        - Force y value: values of the force in the y direction | type: arry of floats
+    - damage - damage object with the following structure:
+        - alpha: damage parameter
+        - beta: damage parameter
+        - brokenBonds (only if the methdod initialize_brokenBonds(family) was used): brokenBonds vector (initialization only) | ii: node, jj: neighbors, kk: crack segment i to i+1
+        - crackIn: Nx2 np.array of initial crack segments, where N≥2
+        - damage_dependent_Sc: True if Sc is damage dependent
+        - damage_on: True if applying damage to the model
+        - gamma: damage parameter
+        - phi: damage index (actually not touched here. Calculated in the solver)
+        - Sc: critical relative elongation
+        - thetaC: dilatation parameter ?
+    - disp (need to utilize the method set_displacement_constraints): structured array of displacement constraints. See the method set_displacement_constraints for more info
+    - dofi: IDB vector in Nx2 condition
+    - dofj (only if the methdod compute_dofj(family) was used): 
     - idb: collumn vector that index each of its row (corresponding to the actual dof) to the matrix dof. Example: idb = [1 3 4 6 7 8] means that the third row of the stiffness matrix is related to the 2nd dof freedom of the system
-    - dofi: IDB vector in Nx2 condition'''
-
+    - ndof: number of the mesh degree of freedoms
+    - noFail: set of nodes for which we have no fail condition (mu = 1 always)
+    - noFail_ij (only if the methdod compute_noFail_ij(family) was used): 
+    - sigma_x: stresses first collumn
+    - sigma_y: stresses second collumn
+    - tau_xy: stresses third collumn
+    - vel (need to utilize the method set_velocities_constraints): structured array of displacement velocities. See the method set_displacement_constraints for more info'''
     
 
     def __init__(self) -> None:
@@ -45,9 +69,9 @@ class BoundaryConditions:
         self.vel=np.array([])
         self.noFail=np.array([])
         self._bc_set=np.empty((0,3))
-        self.damage=Damage()
+        self.damage=pd.general_functions.Damage()
 
-    def set_body_forces(self,mesh,stresses,stress_nodes):
+    def set_body_forces(self,mesh:pd.Mesh,stresses:np.ndarray|list,stress_nodes:np.ndarray|list) -> None:
         '''Input:
         
         - mesh: peridynamic mesh generated with Mesh
@@ -60,20 +84,17 @@ class BoundaryConditions:
 
         Updates the following class attributes:
 
-        - sigma_x: stresses first collumn_list_or_array
-        - sigma_y: stresses second collumn
-        - tau_xy: stresses third collumn
-        - bodyForce: structured np.array with the following configuration:
+        - b: Nx2 array of body force
+        - bb: 2N array of body force corrected with the set constraints
+        - bodyForce (need to utilize the method set_body_forces): structured array with the following configuration:
             [Node index, Force x value, Force y value]
             Where:
-            - Node index: nodes where the stresses where applied | type: np.array of ints
+            - Node index: nodes where the stresses where applied | type: array of ints
             - Force x value: values of the force in the x direction | type: arry of floats
             - Force y value: values of the force in the y direction | type: arry of floats
-        - b: body force as an Nx2 np.array where the stresses of node i is applied on the line i, rest are zeros:
-            [sigma_x, sigma_y]
-        - bb: later on, when the user sets the prescribed constraints, the bb will be updated to a 2Nx1 configuration respecting the constraints'''
-
-        #from numpy import np.array,np.atleast_2d,np.atleast_1d,np.empty_like,np.zeros_like,np.full,np.logical_or
+        - sigma_x: stresses first collumn
+        - sigma_y: stresses second collumn
+        - tau_xy: stresses third collumn'''
 
         self._mesh=mesh
 
@@ -100,8 +121,8 @@ class BoundaryConditions:
         self._update_bc_set('bodyforces') # only initializes it
         self._update_noFail('bodyforces')
         
-    def set_displacement_constraints(self,mesh,
-    disp_nodes,disp_bools_x,disp_bools_y,disp_values_x,disp_values_y):
+    def set_displacement_constraints(self,mesh:pd.Mesh,
+    disp_nodes:np.ndarray|list,disp_bools_x:np.ndarray|list,disp_bools_y:np.ndarray|list,disp_values_x:np.ndarray|list,disp_values_y:np.ndarray|list) -> None:
         '''Input:
 
         - mesh: peridynamic mesh generated with Mesh
@@ -124,8 +145,6 @@ class BoundaryConditions:
         - Displacement x value: values of prescribed displacement in the x direction | type: np.array of ints
         - Displacement y value: values of prescribed displacement in the y direction | type: np.array of ints'''
 
-        #from numpy import np.empty_like
-
         self._mesh=mesh
 
         self.disp=np.empty_like(disp_nodes,
@@ -140,8 +159,8 @@ class BoundaryConditions:
         self._update_bc_set('displacements')
         self._update_noFail('displacements')
 
-    def set_velocities_constraints(self,mesh,
-    vel_nodes,vel_bools_x,vel_bools_y,vel_values_x,vel_values_y):
+    def set_velocities_constraints(self,mesh:pd.Mesh,
+    vel_nodes:np.ndarray|list,vel_bools_x:np.ndarray|list,vel_bools_y:np.ndarray|list,vel_values_x:np.ndarray|list,vel_values_y:np.ndarray|list) -> None:
         '''Input:
 
         - mesh: peridynamic mesh generated with Mesh
@@ -164,8 +183,6 @@ class BoundaryConditions:
         - Velocitity x value: values of prescribed velocitity in the x direction | type: np.array of ints
         - Velocitity y value: values of prescribed velocitity in the y direction | type: np.array of ints'''
 
-        #from numpy import np.empty_like
-
         self._mesh=mesh
 
         self.vel=np.empty_like(vel_nodes,
@@ -180,9 +197,7 @@ class BoundaryConditions:
         self._update_bc_set('velocities')
         self._update_noFail('velocities')
 
-    def _update_noFail(self,for_what):
-
-        #from numpy import np.full,np.logical_or
+    def _update_noFail(self,for_what:str) -> None:
 
         # Initialize the noFail np.array
         if self.noFail.size==0:
@@ -200,9 +215,7 @@ class BoundaryConditions:
         elif for_what=='velocities':
             self.noFail[self.vel['Node index']]=True
         
-    def _update_bc_set(self,for_what):
-
-        #from numpy import np.full,np.nan,np.hstack
+    def _update_bc_set(self,for_what:str) -> None:
 
         # Initialize the bc_set np.array
         if self._bc_set.size==0:
@@ -261,8 +274,6 @@ class BoundaryConditions:
     @_cached_property
     def idb(self):
 
-        #from numpy import np.empty,np.logical_and,np.arange,np.setdiff1d,np.count_nonzero
-
         # DEFINE THE IDB VECTOR
         idb=np.empty((2*len(self._mesh.points)),dtype=int)
         try:
@@ -282,8 +293,6 @@ class BoundaryConditions:
     @_cached_property
     def dofi(self):
 
-        # from numpy import np.arange,np.column_stack
-
         # i=np.arange(0,2*len(self._mesh.points))
         # dofi=np.column_stack((self.idb[i[::2]],self.idb[i[1::2]]))
 
@@ -291,8 +300,6 @@ class BoundaryConditions:
 
     @_cached_property
     def bb(self):
-
-        #from numpy import np.array,np.empty
 
         if self.b.size==0:
             return np.array([])
@@ -302,10 +309,8 @@ class BoundaryConditions:
 
         return bb
 
-    def compute_dofj(self,family):
+    def compute_dofj(self,family:pd.Family) -> None:
         '''Compute dofj as a class attribute'''
-
-        #from numpy import np.column_stack,np.array
 
         self.dofj=[]
         for j in family.j:
@@ -313,28 +318,24 @@ class BoundaryConditions:
 
         self.dofj=np.array(self.dofj,dtype=object)
 
-    def compute_noFail_ij(self,family):
-
-        #from numpy import np.array,np.logical_or
+    def compute_noFail_ij(self,family:pd.Family) -> None:
 
         self.noFail_ij=[]
         for i in range(0,len(family.j)):
             self.noFail_ij.append(np.logical_or(self.noFail[i],self.noFail[family.j[i]]))
         self.noFail_ij=np.array(self.noFail_ij,dtype=object)
 
-    def set_damage_on(self,true_or_false):
+    def set_damage_on(self,true_or_false:bool) -> None:
         if type(true_or_false)!=bool:
             raise UserWarning('damage_on should be a boolean')
         self.damage.damage_on=true_or_false
 
-    def set_damage_dependent_SC(self,true_or_false):
+    def set_damage_dependent_SC(self,true_or_false:bool) -> None:
         if type(true_or_false)!=bool:
             raise UserWarning('damage_on should be a boolean')
         self.damage.damage_dependent_Sc=true_or_false
 
-    def set_crackIn(self,Nx2_list_or_array):
-
-        #from numpy import np.array
+    def set_crackIn(self,Nx2_list_or_array:np.ndarray|list) -> None:
  
         if type(Nx2_list_or_array)==list:
             Nx2_list_or_array=np.array(Nx2_list_or_array)
@@ -349,9 +350,7 @@ class BoundaryConditions:
 
         self.damage.crackIn=Nx2_list_or_array
 
-    def initialize_brokenBonds(self,family):
-
-        #from numpy import np.full,np.array,np.empty
+    def initialize_brokenBonds(self,family:pd.Family) -> None:
 
         # try:
         #     crackSegments=len(self.damage.crackIn)
@@ -365,16 +364,13 @@ class BoundaryConditions:
 
         self.damage.brokenBonds=np.array(self.damage.brokenBonds,dtype=object)
 
-    def plot(self,fig_max_size_cm=[40.64,40.64],markersize=6,
-    free_nodes_marker='o',free_nodes_color='black',
-    traction_nodes_marker='s',traction_nodes_color='blue',
-    disp_nodes_marker='+',disp_nodes_color='red',
-    vel_nodes_marker='x',vel_nodes_color='green',
-    crackIn_color='m',crackIn_width=4,**kwargs):
-        '''Plots the boundary conditions set. Can also plot initial damage crack if damage is supplied. See Damage() for more info'''
-
-        #import matplotlib.pyplot as plt
-        #from numpy import np.logical_or
+    def plot(self,fig_max_size_cm:tuple[float|int,float|int]=[40.64,40.64],markersize:int=6,
+    free_nodes_marker:str='o',free_nodes_color:str='black',
+    traction_nodes_marker:str='s',traction_nodes_color:str='blue',
+    disp_nodes_marker:str='+',disp_nodes_color:str='red',
+    vel_nodes_marker:str='x',vel_nodes_color:str='green',
+    crackIn_color:str='m',crackIn_width:int=4,**kwargs) -> None:
+        '''Plots the boundary conditions set. Can also plot initial damage crack if damage is supplied by using the set_crackIn method'''
 
         # Initiate the matplotlib figure and axis
         fig,ax=plt.subplots(nrows=1,ncols=1,figsize=np.array(fig_max_size_cm)/2.54)
@@ -419,7 +415,7 @@ class BoundaryConditions:
         # [len x (user unit), len y (user unit)]/[len x (pixels), len y (pixels)]
         # unit_per_px=[max(self._mesh.x)-min(self._mesh.x),max(self._mesh.y)-min(self._mesh.y)]/ax.bbox.size
         # largest_marker_size=6*unit_per_px
-        largest_marker_size=np.max([markersize,crackIn_width])*np.min(get_figure_relative_unit('unit/pt',ax,self._mesh.x.max()-self._mesh.x.min(),self._mesh.y.max()-self._mesh.y.min()))
+        largest_marker_size=np.max([markersize,crackIn_width])*np.min(pd._plot_helpers.get_figure_relative_unit('unit/pt',ax,self._mesh.x.max()-self._mesh.x.min(),self._mesh.y.max()-self._mesh.y.min()))
 
         ax.set_title('Boundary conditions',{'fontsize':24}) # e.g. Mesh
         ax.set_xlabel(f'x ({self._mesh.unit})',fontsize=18) # e.g. x (m)
@@ -454,17 +450,11 @@ class BoundaryConditions:
                 return
         except KeyError:
             plt.show()
-
-        # if interactive==False:
-        #     #display(fig)
-        #     plt.show()
-        #     # Close it in order to save system resources
-        #     plt.close()
-        # else:
-        #     plt.show()
         
+    def get_fig_ax(self,**kwargs) -> None:
 
-    def get_fig_ax(self,**kwargs):
         '''Returns matplotlib figure object. See the plot method of this class for optional parameters'''
+
         self.plot(hide_plot_and_update_class_properties=True,**kwargs)
+        
         return self._fig,self._ax

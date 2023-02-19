@@ -17,9 +17,6 @@ class Mesh:
     print(f'The grid spacing is = {mesh.h}')
     print(f"The elements' area are = {mesh.A}")
     mesh.plot()'''
-
-    # from functools import cached_property as cached_property
-    # from functools import cached_property
     
     def __init__(self):
         self.rotation_angle_rad=0
@@ -53,39 +50,14 @@ class Mesh:
             - Y: nrows x ncols dimension np.array np.where each row represent each y value of given row
             Only works for rectangular meshs'''
 
-        #from numpy import np.meshgrid,np.arange,np.zeros
-
-        # try:
-        #     if self.type=='rectangular':
-        #         ϵ=self.h/2
-        #         X,Y=np.meshgrid(np.arange(self.x.min(),self.x.max()+ϵ,self.h),np.arange(self.y.min(),self.y.max()+ϵ,self.h))
-        #         return X,Y
-        #     else:
-        #         raise NotImplementedError('Mesh grid is not supported for irregular meshs')
-        # except AttributeError:
-        #     raise UserWarning('A mesh should be generated first. Type help(Mesh) to get started.')
-
         ϵ=self.h/2
         X,Y=np.meshgrid(np.arange(self.x.min(),self.x.max()+ϵ,self.h),np.arange(self.y.min(),self.y.max()+ϵ,self.h))
         return X,Y
             
     @cached_property
     def ncols(self):
-        '''Get the number of columns.'''
-        # from numpy import np.floor,np.cos,np.isclose
-        # from sys import float_info
-
-        # ϵ=float_info.epsilon # very small number of the order of the machine precision
+        '''Get the number of columns'''
         
-        # try:
-        #     lenghtx=max(self.x)-min(self.x)
-        #     if self.rotation_angle_rad==0:
-        #         return int(np.floor(lenghtx/self.h-ϵ))+1
-        #     else:
-        #         return int(np.floor(lenghtx/(self.h*np.cos(self.rotation_angle_rad))-ϵ))+1
-        # except AttributeError:
-        #     raise UserWarning('A mesh should be generated first. Type help(Mesh) to get started.')
-
         try:
             lenghtx=max(self.x)-min(self.x)
             if self.rotation_angle_rad==0:
@@ -109,21 +81,7 @@ class Mesh:
             
     @cached_property
     def nrows(self):
-        '''Get the number of rows.'''
-        
-        # from numpy import np.floor,np.sin,np.isclose
-        # from sys import float_info
-
-        # ϵ=float_info.epsilon # very small number of the order of the machine precision
-        
-        # try:
-        #     lenghty=max(self.y)-min(self.y)
-        #     if self.rotation_angle_rad==0:
-        #         return int(np.floor(lenghty/self.h-ϵ))+1
-        #     else:
-        #         return int(np.floor(lenghty/(self.h*np.sin(self.rotation_angle_rad))-ϵ))+1
-        # except AttributeError:
-        #     raise UserWarning('A mesh should be generated first. Type help(Mesh) to get started.')
+        '''Get the number of rows'''
 
         try:
             lenghty=max(self.y)-min(self.y)
@@ -145,27 +103,6 @@ class Mesh:
                 return rows
         except AttributeError:
             raise UserWarning('A mesh should be generated first. Type help(Mesh) to get started.')
-    
-    # @cached_property
-    # def cols_rows_ind(self):
-    #     '''Return an np.array expresnp.sing the column and row indices of each point, starting from 0.'''
-        
-    #     from numpy import np.floor,np.sin,np.cos
-        
-    #     try:
-    #         # Get column and row of each point
-    #         if self.rotation_angle_rad==0:
-    #             cols_rows=np.floor((self.points-[self.points[:,0].min(),self.points[:,1].min()])/self.h+1/2).astype(int)
-    #         else:
-    #             cols_rows=np.floor((self.points-[self.points[:,0].min(),self.points[:,1].min()])/\
-    #                        [self.h*np.cos(self.rotation_angle_rad),self.h*np.sin(self.rotation_angle_rad)]+1/2).astype(int)
-    #         return cols_rows
-    #     except AttributeError:
-    #         raise UserWarning('A mesh should be generated first. Type help(Mesh) to get started.')
-
-    # def _make_sure_cells_are_continuous(self):
-
-    #     from numpy import full,any,all,np.isclose,np.empty
 
     @cached_property
     def counters(self):
@@ -177,14 +114,11 @@ class Mesh:
         # 7 counters: border
         # 8 counters: fully inside
 
-        #from numpy import np.empty,np.count_nonzero
-        #from numpy.linalg import np.linalg.norm
-
         radius=self.h*1.5 # diagonal is self.h*sqrt(2), so whe choose a value that is a little bit higher to avoid float errors
         counters=np.empty((len(self.points)),dtype=int)
         for i in range(0,len(self.points)):
             dist_xi=np.linalg.norm(self.points[i]-self.points,axis=1)
-            counters[i]=np.count_nonzero(dist_xi<self.h*1.5)-1 # -1 to exclude self
+            counters[i]=np.count_nonzero(dist_xi<radius)-1 # -1 to exclude self
         
         return counters
 
@@ -206,6 +140,7 @@ class Mesh:
         return dictionary
 
     def get_borders_bool(self,which='all'):
+        '''Get borders booleans. Also see: get_borders_ind and get_borders'''
 
         if which=='all':
             bool_array=self._border_bool[which]
@@ -218,8 +153,7 @@ class Mesh:
         return bool_array
 
     def get_borders_ind(self,which='all'):
-
-        #from numpy import np.where
+        '''Get borders indices. Also see: get_borders_bool and get_borders_ind'''
 
         if which=='all':
             ind_array=np.where(self._border_bool[which])[0]
@@ -232,8 +166,7 @@ class Mesh:
         return ind_array
 
     def get_borders(self,which='all'):
-
-        #from numpy import np.where
+        '''Get borders coordinates. Also see: get_borders_bool and get_borders_ind'''
 
         if which=='all':
             border_array=self.points[self._border_bool[which]]
@@ -250,8 +183,10 @@ class Mesh:
         - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: numpy.ndnp.array
         - h: grid spacing | type: float or int
         - A: elements' area | type: float or int
-        - x:
-        - y:
+        - points: the points' [x,y] positions
+        - vertices: rectangle vertices positions
+        - x: position x of the points
+        - y: position y of the points
         Input:
         - h: grid spacing | type: float or int
         - size_x: size of the rectangular mesh side on the x axis | type: float or int
@@ -260,11 +195,6 @@ class Mesh:
             - "restrictive": make sure the maximum values of points don't surpass the values imposed by the sides, allowing them to be equal or smaller by h
             - "expansive": allows the maximum values of points to be equal or surpass the values of the sides by a maximum of h
             - "exact": make sure the points fit perfectly into the rectangular shape. Tecnically this can be done by the other modes, but this one raises a warning in case the user inputs wrong parameters'''
-
-        # from numpy import np.isclose,np.arange,np.resize,np.hstack,np.array
-        # from sys import float_info
-
-        # ϵ=float_info.epsilon # very small number of the order of the machine precision
         
         if h>size_x or h>size_y:
             raise ValueError("Grid spacing can't be higher than any of the rectangle sizes")
@@ -278,9 +208,6 @@ class Mesh:
         self.h=h
         self.A=h**2 # elements' area
         self.type='rectangular'
-        
-        # cols=int(np.floor(size_x/h-ϵ))+1
-        # rows=int(np.floor(size_y/h-ϵ))+1
 
         cols=int(size_x/h)+1 # can cause errors when the division is close to an integer, eg 3.999999 or 4.000001
         [rem_1,add_1]=np.isclose(size_x/h+1,[cols-1,cols+1],rtol=1.e-5,atol=1.e-8)
@@ -309,9 +236,6 @@ class Mesh:
         else:
             raise NameError('Available modes are "restrictive", "expansive" and "exact"')
 
-        # x=np.arange(0,size_x+h/2,h)
-        # y=np.arange(0,size_y+h/2,h)
-
         x=np.arange(0,cols)*h
         y=np.arange(0,rows)*h
 
@@ -324,31 +248,6 @@ class Mesh:
         
         self.vertices=np.array([[0,0],[size_x,0],[size_x,size_y],[0,size_y],[0,0]])
         self.points=points
-        
-#         if mode=='restrictive':
-#             M=int(np.floor(size_x/h+0.5-ϵ))+1 # number of collumns
-#             N=int(np.floor(size_y/h+0.5-ϵ))+1 # number of rows
-#         elif mode=='expansive':
-#             M=int(np.floor(size_x/h+0.5-ϵ))+2 # number of collumns
-#             N=int(np.floor(size_y/h+0.5-ϵ))+2 # number of rows
-#         elif mode=='exact':
-#             #if size_x/h==int(size_x/h) and size_y/h==int(size_y/h):
-#             if np.isclose(int(np.floor(size_x/h+0.5-ϵ)),size_x/h) and np.isclose(int(np.floor(size_y/h+0.5-ϵ)),size_y/h):
-#                 #M=int(size_x/h)+1
-#                 #N=int(size_y/h)+1
-#                 M=int(np.floor(size_x/h+0.5-ϵ))+1 # number of collumns
-#                 N=int(np.floor(size_y/h+0.5-ϵ))+1 # number of rows
-#             else:
-#                 raise ValueError('In "exact" mode the h must be a divisor of both sides')
-#         else:
-#             raise NameError('Available modes are "restrictive", "expansive" and "exact"')
-#         points=np.zeros([M*N,2])
-#         for i in np.arange(0,N):
-#             for j in np.arange(0,M):
-#                 points[i*M+j]=[j*h,i*h]
-        
-#         self.vertices=np.array([[0,0],[size_x,0],[size_x,size_y],[0,size_y],[0,0]])
-#         self.points=points
 
     def generate_mesh_constrained_within_points(self,h,points_Nx2):
         '''Generate mesh inside the given points. Points should be in order.
@@ -359,13 +258,6 @@ class Mesh:
         Input:
         - h: grid spacing | type: float or int
         - points_Nx2: ordered polygon vertices in Nx2 dimension | type: float or int'''
-
-        #from numpy import np.array,all,np.vstack,min,max,np.arange,np.resize,np.hstack,np.isclose
-        #from numpy import all,min,max
-        #from matplotlib.path import Path
-        # from sys import float_info
-
-        # ϵ=float_info.epsilon # very small number of the order of the machine precision
         
         self.h=h
         self.A=h**2 # elements' area
@@ -375,30 +267,12 @@ class Mesh:
         
         if np.all(points_Nx2[-1]!=points_Nx2[0]): # make sure points form a closed polygon
             points_Nx2=np.vstack((points_Nx2,points_Nx2[0]))
-            
-#         x=np.arange(min(points_Nx2[:,0]),max(points_Nx2[:,0]),h) # x values to be scanned (1xN)
-#         y=np.arange(min(points_Nx2[:,1]),max(points_Nx2[:,1]),h) # y values to be scanned (1xN)
-#         xy=np.zeros((len(x)*len(y),2))
-#         i=0
-#         for _x in x:
-#             for _y in y:
-#                 xy[i]=[_x,_y] # complete list of points to be scanned (NxN)
-#                 i+=1
-
-#         path=Path(vertices=points_Nx2,_interpolation_steps=0,closed=True)
-#         points_inside=path.contains_points(xy) # checks what points are inside
-        
-#         self.vertices=np.array(points_Nx2)
-#         self.points=xy[points_inside]
         
         [xi,yi]=np.min(points_Nx2,axis=0)
         [xf,yf]=np.max(points_Nx2,axis=0)
         
         size_x=xf-xi
         size_y=yf-yi
-        
-        # cols=int(np.floor(size_x/h-ϵ))+1
-        # rows=int(np.floor(size_y/h-ϵ))+1
 
         cols=int(size_x/h)+1 # can cause errors when the division is close to an integer, eg 3.999999 or 4.000001
         [rem_1,add_1]=np.isclose(size_x/h+1,[cols-1,cols+1],rtol=1.e-5,atol=1.e-8)
@@ -413,9 +287,6 @@ class Mesh:
             rows=rows-1
         elif add_1==True:
             rows=rows+1
-            
-        # x=np.arange(xi,xf+h/2,h)
-        # y=np.arange(yi,yf+h/2,h)
 
         x=np.arange(0,cols)*h
         y=np.arange(0,rows)*h
@@ -434,9 +305,9 @@ class Mesh:
         self.points=points[points_inside]
         
     def center(self):
-        '''Offsets mesh so it's centered on the plane origin
+        '''Offsets mesh so it's centered on the plane origin.
         Updates the following class attribute:
-        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: numpy.ndnp.array'''
+        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: np.array'''
         
         try:
             self.points
@@ -447,9 +318,9 @@ class Mesh:
         self.points=self.points-[(min(self.points[:,0])+max(self.points[:,0]))/2,(min(self.points[:,1])+max(self.points[:,1]))/2]
         
     def offset(self,x,y):
-        '''Offsets mesh to by x,y ammount
+        '''Offsets mesh to by x,y ammount.
         Updates the following class attribute:
-        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: numpy.ndnp.array
+        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: np.array
         Input:
         - x: distance in the x axis | type: float or int
         - y: distance in the y axis | type: float or int'''
@@ -463,9 +334,9 @@ class Mesh:
         self.points=self.points+[x,y]
         
     def rotate(self,angle,unit='deg'):
-        '''Rotates mesh around origin
+        '''Rotates mesh around origin.
         Updates the following class attribute:
-        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: numpy.ndnp.array
+        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: np.array
         Input:
         - angle: counterclockwise mesh rotation angle in degrees (default) or radians | type: float or int
         - unit: wheter the angle should be in degrees ("deg") or radians ("rad") | type: str'''
@@ -474,9 +345,7 @@ class Mesh:
             self.points
         except AttributeError:
             raise UserWarning('A mesh should be generated first. Type help(Mesh) to get started.')
-        
-        #from numpy import np.deg2rad,np.copy,np.sin,np.cos
-        
+                
         if unit=='deg':
             angle=np.deg2rad(angle)
         elif unit=='rad':
@@ -497,13 +366,10 @@ class Mesh:
     def remove_circles(self,centers,radiuses):
         '''Remove all points inside circles
         Updates the following class attribute:
-        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: numpy.ndnp.array
+        - points: [[x1,y1],[x2,y2],...,[xn,yn]] points that represents the peridynamic mesh | type: np.array
         Input:
         - centers: center of the circles | type: list
         - radiuses: radiuses of each circle | type: list'''
-
-        #from numpy.linalg import np.linalg.norm
-        #from numpy import np.where
         
         try:
             self.points
@@ -515,30 +381,6 @@ class Mesh:
             r=np.linalg.norm(self.points-center,ord=2,axis=1) # euclidian distance between each pair of points
             self.points=self.points[np.where(r>radius)[0]]
             
-    # def order_points(self):
-    #     '''Order points so they start from the bottom left of the mesh and go all the way up to the last top right.'''
-        
-    #     from numpy import argsort
-        
-    #     try:
-    #         self.points
-    #     except AttributeError:
-    #         raise UserWarning('A mesh should be generated first. Type help(Mesh) to get started.')
-            
-    #     # Get columns and rows indices for each point
-    #     cols_rows_ind_aux=self.cols_rows_ind
-        
-    #     # Partially reorder points based on rows
-    #     ind_order=argsort(cols_rows_ind_aux[:,1])
-    #     cols_rows_ind_aux=cols_rows_ind_aux[ind_order]
-    #     self.points=self.points[ind_order]
-        
-    #     # Reorder points by columns for each row
-    #     for row in range(0,3):
-    #         ind_order=argsort(cols_rows_ind_aux[cols_rows_ind_aux[:,1]==row,0])
-    #         cols_rows_ind_aux[cols_rows_ind_aux[:,1]==row]=cols_rows_ind_aux[cols_rows_ind_aux[:,1]==row][ind_order]
-    #         self.points[cols_rows_ind_aux[:,1]==row]=self.points[cols_rows_ind_aux[:,1]==row][ind_order]
-
     def plot(self,include_nodes=True,include_cells=True,include_vertices=False,include_sides=False,
                 frame_on=False,grid=False,fig_max_size_cm=[40.64,40.64],
                 legend_loc='lower right',legend_bbox_to_anchor=(1,1,0,0),legend_framealpha=1,legend_edgecolor='grey',
@@ -547,10 +389,6 @@ class Mesh:
                 sides_linestyle='-',sides_marker='',sides_linewidth=6,sides_color='black',**kwargs):
         '''Plot the mesh'''
         
-        #import matplotlib.pyplot as plt
-        #from matplotlib.patches import Patch
-        #from numpy import np.array,max,min,np.hstack
-        
         try:
             self.points
         except AttributeError:
@@ -558,7 +396,6 @@ class Mesh:
         
         # Initiate the matplotlib figure and axis
         fig,ax=plt.subplots(nrows=1,ncols=1,figsize=np.array(fig_max_size_cm)/2.54)#,subplot_kw={'projection':None},gridspec_kw={'wspace':0,'hspace':0}
-        # fig.set_label(title)
 
         # Parameters to reduce margins and fix aspect ratio
         ax.set_aspect(1)#,adjustable='box'
@@ -647,17 +484,6 @@ class Mesh:
         # fig.set_constrained_layout(True)
         # fig.set_constrained_layout_pads(w_pad=2/fig.get_dpi(),h_pad=0,wspace=0,hspace=0)
         fig.draw_without_rendering()
-        
-        # if _is_notebook(): # display the plot in a notebook
-        #     # display(fig)
-        #     if interactive==False:
-        #         display(fig.get_figure())
-        #         # Close it in order to save systemn resources
-        #         plt.close()
-        #     else:
-        #         plt.show()
-        # else: # display the plot in another environment (e.g. python cmd)
-        #     fig.show()
 
         # Obtain the figure object (see get_figure_ax) without the need to create a redundant method
         try:
@@ -668,16 +494,7 @@ class Mesh:
                 return
         except KeyError:
             plt.show()
-
-        # if interactive==False:
-        #     # display(fig)
-        #     plt.show()
-        #     # Close it in order to save system resources
-        #     plt.close()
-        # else:
-        #     plt.show()
         
-
     def get_fig_ax(self,**kwargs):
         '''Returns matplotlib figure object. See the plot method of this class for optional parameters'''
         self.plot(hide_plot_and_update_class_properties=True,**kwargs)

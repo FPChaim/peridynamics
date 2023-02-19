@@ -3,10 +3,9 @@
 import os
 from time import strftime
 import matplotlib.pyplot as plt
-from matplotlib import rcsetup
-from PIL import Image
+from matplotlib import figure
 
-def get_figure_relative_unit(which,ax,x_interval_in_unit=None,y_interval_in_unit=None):
+def get_figure_relative_unit(which:str,ax:plt.Axes,x_interval_in_unit:float|int|None=None,y_interval_in_unit:float|int|None=None): # -> np.ndarray
 
     '''Input parameters:
     
@@ -26,8 +25,6 @@ def get_figure_relative_unit(which,ax,x_interval_in_unit=None,y_interval_in_unit
     Output parameters:
     
     - (2,) array of choosen relation'''
-
-    # from numpy import diff,all,isinf
 
     fig=ax.get_figure()
 
@@ -59,98 +56,53 @@ def get_figure_relative_unit(which,ax,x_interval_in_unit=None,y_interval_in_unit
         # return [x_interval_in_unit,y_interval_in_unit]/(ax.bbox.size/fig.dpi)/72
         return [x_interval_in_unit,y_interval_in_unit]/(ax.bbox.size/(fig.dpi/72)) # note: 1 pt = fig.dpi/72 ppi --> 1 pt = fig.dpi/72 pixels | 1 pt = 1/72 in --> 1 in = 72 pt
 
-    # elif which=='pt²/unit':
-    #     return (ax.bbox.size/fig.dpi)/[x_interval_in_unit,y_interval_in_unit]*5184 # note: 1 point² = 1/5184 in --> 1 in = 5184 pt²
-
-    # elif which=='unit/pt²':
-    #     return [x_interval_in_unit,y_interval_in_unit]/(ax.bbox.size/fig.dpi)/5184 # note: 1 point² = 1/5184 in --> 1 in = 5184 pt²
-
     else:
         raise NameError('Available options are: "px/unit", "unit/px", "in/unit", "unit/in", "pt/unit", "unit/pt"')
 
-def is_notebook() -> bool:
-    '''Checks if the code is running from within a notebook.
-    From https://stackoverflow.com/a/39662359'''
-
-    try:
-        from IPython import get_ipython
-    except ModuleNotFoundError:
-        pass
-
-    try:
-        shell = get_ipython().__class__.__name__
-        if shell == 'ZMQInteractiveShell':
-            return True # Jupyter notebook or qtconsole
-        elif shell == 'TerminalInteractiveShell':
-            return False # Terminal running IPython
-        else:
-            return False # Other type (?)
-    except NameError:
-        return False # Probably standard Python interpreter
-
-# is_notebook()
-
-# User configuration: static or interactive plots
-
-# Static plots
-# % matplotlib inline
-# plt.switch_backend('module://matplotlib_inline.backend_inline')
-
-# Interactive plots
-# %matplotlib ipympl
-# %matplotlib widget
-# plt.switch_backend('module://ipympl.backend_nbagg')
-
-def matplotlib_backend_is_GUI() -> bool:
-    current_backend=plt.get_backend()
-    interactive_backends=rcsetup.interactive_bk # gui backends, can be shown by plt.show()
-    non_interactive_backends=rcsetup.non_interactive_bk # non-GUI backend. Can't be shown by plt.show()
-    notebook_backends=['module://matplotlib_inline.backend_inline', # gui backends, can be shown by plt.show()
-                       'module://ipympl.backend_nbagg']
-
-    if interactive_backends.count(current_backend)==1 or notebook_backends.count(current_backend)==1:
-        return True
-    elif non_interactive_backends.count(current_backend)==1:
-        return False
-    else:
-        raise NotImplementedError(f'The backend "{current_backend}" is not recognized')
-
-# matplotlib_backend_is_GUI()
-
-def save_plot(fig,ax,name='%Y-%m-%d-%t.png',folder='',transparent=False,silent=False,dpi=100,pad_px=3):
-    r'''- fig: matplotlib figure
+def save_plot(fig:figure.Figure,ax:plt.Axes|None=None,name:str='%Y-%m-%d-%t.png',folder:str='',transparent:bool=False,silent:bool=False,dpi:int=100,pad_px:int=3) -> None:
+    r'''Input parameters:
+    
+    - fig: matplotlib figure
     - ax: matplotlib axis
     - name: Can be any string constructed with the following codes:
-        Plot codes:
-            %t  Plot title
-        Time codes (from time.strftime library):
-            %Y  Year with century as a decimal number.
-            %m  Month as a decimal number [01,12].
-            %d  Day of the month as a decimal number [01,31].
-            %H  Hour (24-hour clock) as a decimal number [00,23].
-            %M  Minute as a decimal number [00,59].
-            %S  Second as a decimal number [00,61].
-            %z  Time zone offset from UTC.
-            %a  Locale's abbreviated weekday name.
-            %A  Locale's full weekday name.
-            %b  Locale's abbreviated month name.
-            %B  Locale's full month name.
-            %c  Locale's appropriate date and time representation.
-            %I  Hour (12-hour clock) as a decimal number [01,12].
-            %p  Locale's equivalent of either AM or PM.
+        - Plot codes:
+            - %t  Plot title
+        - Time codes (from time.strftime library):
+            - %Y  Year with century as a decimal number.
+            - %m  Month as a decimal number [01,12].
+            - %d  Day of the month as a decimal number [01,31].
+            - %H  Hour (24-hour clock) as a decimal number [00,23].
+            - %M  Minute as a decimal number [00,59].
+            - %S  Second as a decimal number [00,61].
+            - %z  Time zone offset from UTC.
+            - %a  Locale's abbreviated weekday name.
+            - %A  Locale's full weekday name.
+            - %b  Locale's abbreviated month name.
+            - %B  Locale's full month name.
+            - %c  Locale's appropriate date and time representation.
+            - %I  Hour (12-hour clock) as a decimal number [01,12].
+            - %p  Locale's equivalent of either AM or PM.
+
         Other codes may be available on your platform.  See documentation for
         the C library strftime function.
+        
         Example: name = '%Y-%m-%d-%t-my custom text' will wield a name with
         the following characteristics = YYYY-MM-DD-FIGURETITLE-my custom text
-    - extension: figure extension
+
     - folder: set the folder to where the images will be saved. By default
     creates and the folder 'Peridynamic plots' where the script is running and
     set it for saving the images.
+
     Example: folder = r'C:\Users\USERNAME\Desktop\Peridynamic plots'
+    
     - transparent: wheter the image will be trasnparent or not (only supported on a few extensions)
     - silent: wheter to print a message containg the full image path of created image
     - dpi: density per inches. Higher dpi means a better image with bigger file size
-    - pad_px: padding around the figure (0 is not recommended)'''
+    - pad_px: padding around the figure (0 is not recommended)
+    
+    Output parameters:
+    
+    - image saved on disk'''
     
     if folder=='':
         folder=os.path.join(os.getcwd(),'Peridynamic plots')
@@ -158,36 +110,71 @@ def save_plot(fig,ax,name='%Y-%m-%d-%t.png',folder='',transparent=False,silent=F
     if os.path.isdir(folder)==False: # creates folder if it doesn't exist
         os.mkdir(folder)
      
-    # for i,j in zip(['%t'],[ax.get_title()]): # custom name formatting with plot attributes
-    #     name=name.replace(i,j)
-    name=name.replace('%t',ax.get_title()) # custom name formatting with plot attributes
+    if ax is not None:
+        name=name.replace('%t',ax.get_title()) # custom name formatting with plot attributes
+    else:
+        name=name.replace('%t','') # custom name formatting with plot attributes
     
     name=strftime(name) # name formatting with time codes
 
-    absolute_path=os.path.join(folder,name)
-    
-    # if transparent==True:
-    #     bbox_inches=None
-    #     facecolor=(1,1,1,0) # (R,G,B,A)
-    #     edgecolor=(1,1,1,0) # (R,G,B,A)
+    if name.count('.')==0: # check for extension
+        name=name+'.png'
 
-    # else:
-    #     bbox_inches='tight'
-    #     facecolor=(1,1,1,1) # (R,G,B,A)
-    #     edgecolor=(1,1,1,1) # (R,G,B,A)
-    
-    # fig.savefig(fname=absolute_path,transparent=transparent,dpi=dpi,
-    #            bbox_inches=bbox_inches,pad_inches=pad_px/dpi,facecolor=facecolor,edgecolor=edgecolor)
+    absolute_path=os.path.join(folder,name)
 
     fig.savefig(fname=absolute_path,transparent=transparent,dpi=dpi,
                bbox_inches='tight',pad_inches=pad_px/dpi)
     
-    # if transparent==True:
-    #     im=Image.open(absolute_path)
-    #     im=im.crop(im.getbbox()) # crops extra transparent parts
-    #     im.save(absolute_path)
-    
     if silent==False:
         print(f'Plot succesfully saved at {absolute_path}')
-        
-# save_plot(fig,ax,folder=r'C:\Users\FPChaim\Desktop\Peridynamic plots',transparent=True)
+
+# ----- The following functions ended up not being used -----
+
+# from matplotlib import rcsetup
+
+# def is_notebook() -> bool:
+#     '''Checks if the code is running from within a notebook.
+#     From https://stackoverflow.com/a/39662359'''
+
+#     try:
+#         from IPython import get_ipython
+#     except ModuleNotFoundError:
+#         pass
+
+#     try:
+#         shell = get_ipython().__class__.__name__
+#         if shell == 'ZMQInteractiveShell':
+#             return True # Jupyter notebook or qtconsole
+#         elif shell == 'TerminalInteractiveShell':
+#             return False # Terminal running IPython
+#         else:
+#             return False # Other type (?)
+#     except NameError:
+#         return False # Probably standard Python interpreter
+
+# # is_notebook()
+
+# # User configuration: static or interactive plots
+
+# # Static plots
+# # % matplotlib inline
+# # plt.switch_backend('module://matplotlib_inline.backend_inline')
+
+# #  Interactive plots
+# # %matplotlib ipympl
+# # %matplotlib widget
+# # plt.switch_backend('module://ipympl.backend_nbagg')
+
+# def matplotlib_backend_is_GUI() -> bool:
+#     current_backend=plt.get_backend()
+#     interactive_backends=rcsetup.interactive_bk # gui backends, can be shown by plt.show()
+#     non_interactive_backends=rcsetup.non_interactive_bk # non-GUI backend. Can't be shown by plt.show()
+#     notebook_backends=['module://matplotlib_inline.backend_inline', # gui backends, can be shown by plt.show()
+#                        'module://ipympl.backend_nbagg']
+
+#     if interactive_backends.count(current_backend)==1 or notebook_backends.count(current_backend)==1:
+#         return True
+#     elif non_interactive_backends.count(current_backend)==1:
+#         return False
+#     else:
+#         raise NotImplementedError(f'The backend "{current_backend}" is not recognized')

@@ -1,10 +1,10 @@
 '''Provides the code necessary to generate a 2D peridynamic family'''
 
 from sys import float_info
-from peridynamics._misc import progress_printer
 import numpy as np
+import peridynamics as pd
 
-def _IPA_AC(xk:float,yk:float,xi:float,yi:float,h:float,A:float,δ:float,counter:int,ε:float) -> float:
+def _IPA_AC(xk:float|int,yk:float|int,xi:float|int,yi:float|int,h:float|int,A:float|int,δ:float|int,counter:int,ε:float|int) -> tuple[float|int,float|int,float|int]:
     '''Returns partial area analyticial calculation used in "IPA-AC" algorith and the centroid coordinates as proposed by Seleson
     
     Input parameters:
@@ -237,7 +237,7 @@ def _IPA_AC(xk:float,yk:float,xi:float,yi:float,h:float,A:float,δ:float,counter
 
     return Ak,x̄k,ȳk
 
-def _PA_AC(xk:float,yk:float,xi:float,yi:float,h:float,A:float,δ:float,counter:int,ε:float) -> float:
+def _PA_AC(xk:float|int,yk:float|int,xi:float|int,yi:float|int,h:float|int,A:float|int,δ:float|int,counter:int,ε:float|int) -> float|int:
     '''Returns partial area analyticial calculation used in "PA-AC" algorith as proposed by Seleson
     
     Input parameters:
@@ -379,9 +379,21 @@ def _PA_AC(xk:float,yk:float,xi:float,yi:float,h:float,A:float,δ:float,counter:
     return Ak
 
 class Family:
+    '''Peridynamic family object, with the following attributes:
 
-    def __init__(self,mesh,δ,m,PA_alg,SC_alg,silent=False) -> None:#,save_or_load_from_file=False,folder='',name=''
-        '''Input parameters:
+        - j: vector containing all neighbors j for all points i
+        - maxNeigh: the maximum number of neighbors around a node (scalar)
+        - PA_alg: partial area algorithm used
+        - PAj: partial areas of points j for each point i
+        - SC_alg: surface correction algorithm usedd
+        - SCj: surface correction of points j for each point i
+        - xj: position of points j for each point i
+        - XJ: position with the corrected quadrature coordinates x and y for j-th node at the neighborhood of the i-th node'''
+
+    def __init__(self,mesh:pd.Mesh,δ:float|int,m:float|int,PA_alg:str,SC_alg:str,silent:bool=False) -> None:
+        '''A class that one should intializate as an object, e.g: family=Family()
+        
+        Input parameters:
         
         - mesh: peridynamic mesh. The following mesh parameters will be used in this function:
             - h: grid spacing | type: float or int
@@ -390,30 +402,31 @@ class Family:
         - δ: Peridynamic horizon
         - m: mesh ratio (m=δ/h), which represents the number of nodes inside the horizon
         - PA_alg: Partial area algorithm
-            - "IPA-AC+" (not implemented yet)
-            - "IPA-AC"
-            - "PA-AC+" (not implemented yet)
-            - "PA-AC" (recommended)
-            - "PA-HHB+"
-            - "PA-HHB"
-            - "PA-PDLAMMPS+"
-            - "PA-PDLAMMPS"
-            - "FA+"
-            - "FA"
+            - "IPA-AC": improved partial area analytical calcultation algorithm proposed by Seleson (partially implemented - the centroids are calculated but aren't used)
+            - "PA-AC": partial area analytical calcultation algorithm proposed by Seleson (recommended)
+            - "PA-HHB+": vectorized PA-HHB
+            - "PA-HHB": partial area algorithm proposed by Hu, Ha and Bobaru
+            - "PA-PDLAMMPS+": vectorized PA-PDLAMMPS
+            - "PA-PDLAMMPS": Partial area algorithm used in the PDLAMMPS software
+            - "FA+": vectorized FA
+            - "FA": full area algorithm proposed by Silling and Askari
         - SC_alg: surface correction algorithm
-            - "Volume" volume correction
-            - "None" no correction
-        - folder: np.where to save the family file. If folder='' (default), sets folder to "current_dir\FAMILY FILES" | type: str
-        - name: file name os saved file without the extension. If name='', sets name to "family" | type: str
-        - silent: wheter to print feedback on file loading, saving, errors, etc | type: boolean
+            - "Volume": volume correction
+            - "None": no correction
+        - silent: wheter to print feedback during calculation
         
         Output parameters:
         
-        - family: each line i of the family contain the indices of j all the neighbors x[j] of x[i]. Masked (or -1) values are present only to maitain the np.array structure and don't have np.any meaning.
-        - partialAreas - It informs the A_k^(i) (partial area) whether the node k in the neighborhood i is on the border of the neighborhood or not;
-        - maxNeigh: the maximum number of neighbors around a node (scalar)
-        - surfaceCorrection: 
-        - XJ - Matrix with the corrected quadrature coordinates x and y for j-th node at the neighborhood of the i-th node'''
+            Updates the following attributes:
+
+            - j: vector containing all neighbors j for all points i
+            - maxNeigh: the maximum number of neighbors around a node (scalar)
+            - PA_alg: partial area algorithm used
+            - PAj: partial areas of points j for each point i
+            - SC_alg: surface correction algorithm usedd
+            - SCj: surface correction of points j for each point i
+            - xj: position of points j for each point i
+            - XJ: position with the corrected quadrature coordinates x and y for j-th node at the neighborhood of the i-th node'''
 
         self.PA_alg=PA_alg
         self.SC_alg=SC_alg
@@ -581,7 +594,7 @@ class Family:
                 #YJ.append(YJ_i)
 
                 if silent==False:            
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
 
         elif PA_alg=='PA-AC':
 
@@ -700,7 +713,7 @@ class Family:
                 PAj.append(PAj_i)
 
                 if silent==False:            
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
 
         elif PA_alg=='PA-HHB+':
 
@@ -740,7 +753,7 @@ class Family:
                 PAj.append(PAj_i)
                 
                 if silent==False:
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
 
         elif PA_alg=='PA-HHB':
 
@@ -785,7 +798,7 @@ class Family:
                 PAj.append(PAj_i)
                         
                 if silent==False:
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
         
         elif PA_alg=='PA-PDLAMMPS+':
 
@@ -824,7 +837,7 @@ class Family:
                 PAj.append(PAj_i)
                 
                 if silent==False:
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
     
         elif PA_alg=='PA-PDLAMMPS':
 
@@ -869,7 +882,7 @@ class Family:
                 PAj.append(PAj_i)
 
                 if silent==False:
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
 
         elif PA_alg=='FA+':
 
@@ -896,7 +909,7 @@ class Family:
                 PAj.append(PAj_i)
                         
                 if silent==False:
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')                
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')                
                     
         elif PA_alg=='FA':
 
@@ -937,7 +950,7 @@ class Family:
                 PAj.append(PAj_i)
 
                 if silent==False:
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating family and partial areas... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
         
         else:
             raise NameError('The available Partial Area algorithms are: "IPA-AC", "PA-AC" (recommended), "PA-HHB+", "PA-HHB", "PA-PDLAMMPS+","PA-PDLAMMPS","FA+" and "FA"')
@@ -959,7 +972,7 @@ class Family:
         #         j=family[i]>-1 # valid family columns
         #         surfaceCorrection[i,j]=2*V0/(np.sum(partialAreas[i])+np.sum(partialAreas[family[i,j]],axis=1))
         #         if silent==False:
-        #             progress_printer(values=(i+1)/len(x),fmt='Calculating surface correction... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+        #             pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating surface correction... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
         if SC_alg=='Volume':
             # surfaceCorrection=np.ones((len(PAj)),dtype=float)
             surfaceCorrection=[]
@@ -972,13 +985,13 @@ class Family:
                     surfaceCorrection_i[j]=2*V0/(np.sum_PAj_i+np.sum(PAj[family_i[j]]))
                 surfaceCorrection.append(surfaceCorrection_i)
                 if silent==False:
-                    progress_printer(values=(i+1)/len(x),fmt='Calculating surface correction... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                    pd._misc.progress_printer(values=(i+1)/len(x),fmt='Calculating surface correction... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
             surfaceCorrection=np.array(surfaceCorrection,dtype=object)
         elif SC_alg=='None':
             #surfaceCorrection=1.
             surfaceCorrection=np.ones((len(PAj)),dtype=float)
             if silent==False:
-                progress_printer(values=1,fmt='Calculating surface correction... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
+                pd._misc.progress_printer(values=1,fmt='Calculating surface correction... |%b| %p %',bar_sep=40,hundred_percent_print=' Done.')
         else:
             raise NameError('The available Surface Correction algorithms are: "Volume" (recommended) and "None" (for no correction)')
 

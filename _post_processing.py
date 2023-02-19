@@ -1,20 +1,23 @@
+'''Provides some plotting functions'''
+
 # from sys import float_info
 import numpy as np
 import matplotlib.pyplot as plt
 # from matplotlib.cm import jet
 from matplotlib.patches import Patch
+import peridynamics as pd
 
-def _3D_modification(mesh,u_2D,bc,silent=False):
+def _3D_modification(mesh:pd.Mesh,u_2D:np.ndarray,bc:pd.BoundaryConditions,silent:bool=False) -> np.ndarray:
     '''Input parameters:
     
-    - mesh: 
-    - u_2D: 
-    - bc: 
-    - silent: 
+    - mesh: peridynamic mesh generated with Mesh
+    - u_2D: displacements (2D)
+    - bc: boundary conditions genretade with BoundaryConditions
+    - silent: whether to print messages or not
     
     Output parameters:
     
-    -u: '''
+    - u: displacements (3D)'''
     
     x=mesh.points
     # idb=bc.idb
@@ -36,34 +39,40 @@ def _3D_modification(mesh,u_2D,bc,silent=False):
 
     return u
 
-def plot_displacement(mesh,u,bc,aspect='equalxy',scaleFactor='auto',return_fig_ax=False,silent=False):
+def plot_displacement(mesh:pd.Mesh,u:np.ndarray,bc:pd.BoundaryConditions,aspect:str='equalxy',scaleFactor:str|float|int='auto',return_fig_ax:bool=False,silent:bool=False,fig_max_size_cm:tuple[float|int,float|int]=[40.64,40.64]) -> None:
     '''Input parameters:
     
-    - mesh: 
-    - u: 
+    - mesh: peridynamic mesh generated with Mesh
+    - u: displacements
+    - bc: boundary conditions genretade with BoundaryConditions
     - aspect:
-        - "equalxy": 
-        - "equal": 
-        - "auto": 
-    - scaleFactor: 
+        - "equalxy": x and y have the same aspect ratio (recommended)
+        - "equal": x, y and z have the same aspect ratio
+        - "auto": automatically chooses aspect ratios to fill image space with a "fuller" graphic (use if the others make the image difficult to see)
+    - scaleFactor: scale used to increase the size of deformations, because usually they are very small and end up being indistinguible from the original configuration
+        - "auto": let the algorithm decide
+        - can also accept a number
+    - return_fig_ax: if False (default), renders image. Else, returns figure and axis
+    - silent: whether to print messages or not
+    - fig_max_size_cm: maximum size in centimeters allowed for the picture before any aspect ratio rule kicks in
     
-    Output parameters: '''
+    Output parameters: 
+    
+    - rendered image or matplotlib figure and axis (if return_fig_ax=True)'''
 
     # Making a 3D matrix
     u=_3D_modification(mesh,u,bc,silent=silent)
     u=u[...,-1]
 
-    #ϵ=float_info.epsilon
+    # ϵ=float_info.epsilon
     ϵ=mesh.h/2
 
     x=mesh.points
-    #b=max(x[:,0])-min(x[:,0])
-    #a=max(x[:,1])-min(x[:,1])
     # Transforming into a matrix array
-    #X,Y=np.meshgrid(np.arange(mesh.x.min(),mesh.x.max()+ϵ,mesh.h),np.arange(mesh.y.min(),mesh.y.max()+ϵ,mesh.h))
+    # X,Y=np.meshgrid(np.arange(mesh.x.min(),mesh.x.max()+ϵ,mesh.h),np.arange(mesh.y.min(),mesh.y.max()+ϵ,mesh.h))
     X,Y=mesh.grid
     if len(u)==X.size: # rectangular mesh
-        #sz=X.T.shape
+        # sz=X.T.shape
         sz=X.shape
         V=u[:,0].reshape(sz)
         W=u[:,1].reshape(sz)
@@ -86,18 +95,23 @@ def plot_displacement(mesh,u,bc,aspect='equalxy',scaleFactor='auto',return_fig_a
                     W[iii,jjj]=np.nan
         
     fig1,(ax1,ax2)=plt.subplots(nrows=1,ncols=2,subplot_kw=dict(projection='3d'))
+
+    ax1.azim=-120
+    ax2.azim=-120
+    fig1.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     ax1.plot_surface(X=X,Y=Y,Z=V,cmap='jet',rstride=1,cstride=1)
-    ax1.set_title('Displacement Plot (x)')
-    ax1.set_xlabel(f'x ({mesh.unit})')
-    ax1.set_ylabel(f'y ({mesh.unit})')
-    ax1.set_zlabel(f'ux ({mesh.unit})')
+    ax1.set_title('Displacement Plot (x)',{'fontsize':24})
+    ax1.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax1.set_ylabel(f'y ({mesh.unit})',fontsize=18)
+    ax1.set_zlabel(f'ux ({mesh.unit})',fontsize=18)
     ax1.set_aspect(aspect)
 
     ax2.plot_surface(X=X,Y=Y,Z=W,cmap='jet',rstride=1,cstride=1)
-    ax2.set_title('Displacement Plot (y)')
-    ax2.set_xlabel(f'x ({mesh.unit})')
-    ax2.set_xlabel(f'y ({mesh.unit})')
-    ax2.set_zlabel(f'uy ({mesh.unit})')
+    ax2.set_title('Displacement Plot (y)',{'fontsize':24})
+    ax2.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax2.set_ylabel(f'y ({mesh.unit})',fontsize=18)
+    ax2.set_zlabel(f'uy ({mesh.unit})',fontsize=18)
     ax2.set_aspect(aspect)
 
     if scaleFactor=='auto':
@@ -107,6 +121,9 @@ def plot_displacement(mesh,u,bc,aspect='equalxy',scaleFactor='auto',return_fig_a
         aspect=1
 
     fig2,ax3=plt.subplots()
+
+    fig2.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     ax3.plot(X,Y,linestyle='-',color='blue')
     ax3.plot(X.T,Y.T,linestyle='-',color='blue')
     ax3.plot(X+scaleFactor*V,Y+scaleFactor*W,linestyle='-',color='green')
@@ -114,54 +131,68 @@ def plot_displacement(mesh,u,bc,aspect='equalxy',scaleFactor='auto',return_fig_a
     legend_elements=[Patch(facecolor='none',edgecolor='blue',label='Reference'),
                      Patch(facecolor='none',edgecolor='green',label='Deformed')]
     ax3.legend(handles=legend_elements)
-    ax3.set_title(f'Mesh Displacement (Scale Factor = {scaleFactor:.2e})')
-    ax3.set_xlabel(f'x ({mesh.unit})')
-    ax3.set_xlabel(f'y ({mesh.unit})')
+    ax3.set_title(f'Mesh Displacement (Scale Factor = {scaleFactor:.2e})',{'fontsize':24})
+    ax3.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax3.set_ylabel(f'y ({mesh.unit})',fontsize=18)
     ax3.set_aspect(aspect)
 
     fig3,ax4=plt.subplots()
+
+    fig3.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     ax4.scatter(mesh.x,mesh.y,marker='o',edgecolors='blue',facecolors='none')
     ax4.quiver(mesh.x,mesh.y,u[:,0],u[:,1],angles='xy')
-    ax4.set_title('Displacement Quiver')
-    ax4.set_xlabel(f'x ({mesh.unit})')
-    ax4.set_xlabel(f'y ({mesh.unit})')
+    ax4.set_title('Displacement Quiver',{'fontsize':24})
+    ax4.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax4.set_ylabel(f'y ({mesh.unit})',fontsize=18)
     ax4.set_aspect(aspect)
 
     fig4,ax4=plt.subplots()
+
+    fig4.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     ax4.scatter(mesh.x,mesh.y,marker='o',edgecolors='blue',facecolors='blue',label='Reference')
     ax4.scatter(mesh.x+u[:,0]*scaleFactor,mesh.y+u[:,1]*scaleFactor,marker='o',edgecolors='green',facecolors='green',label='Deformed')
     ax4.legend()
-    ax4.set_title(f'Mesh Displacement Scatter (Scale Factor = {scaleFactor:.2e})')
-    ax4.set_xlabel(f'x ({mesh.unit})')
-    ax4.set_xlabel(f'y ({mesh.unit})')
+    ax4.set_title(f'Mesh Displacement Scatter (Scale Factor = {scaleFactor:.2e})',{'fontsize':24})
+    ax4.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax4.set_ylabel(f'y ({mesh.unit})',fontsize=18)
     ax4.set_aspect(aspect)
 
     if return_fig_ax==True:
         figs=[fig1,fig2,fig3,fig4]
         axs=[ax1,ax2,ax3,ax4]
-        plt.close()
+        plt.close(fig1)
+        plt.close(fig2)
+        plt.close(fig3)
+        plt.close(fig4)
         return figs,axs
 
     plt.show()
 
-def plot_strain(mesh,u,bc,aspect='equalxy',return_fig_ax=False,silent=False):
+def plot_strain(mesh:pd.Mesh,u:np.ndarray,bc:pd.BoundaryConditions,aspect:str='equalxy',return_fig_ax:bool=False,silent:bool=False,fig_max_size_cm:tuple[float|int,float|int]=[40.64,40.64]) -> None:
     '''Input parameters:
     
-    - mesh: 
-    - u: 
+    - mesh: peridynamic mesh generated with Mesh
+    - u: displacements
+    - bc: boundary conditions genretade with BoundaryConditions
     - aspect:
-        - "equalxy": 
-        - "equal": 
-        - "auto": 
-    - silent:
+        - "equalxy": x and y have the same aspect ratio (recommended)
+        - "equal": x, y and z have the same aspect ratio
+        - "auto": automatically chooses aspect ratios to fill image space with a "fuller" graphic (use if the others make the image difficult to see)
+    - return_fig_ax: if False (default), renders image. Else, returns figure and axis
+    - silent: whether to print messages or not
+    - fig_max_size_cm: maximum size in centimeters allowed for the picture before any aspect ratio rule kicks in
     
-    Output parameters: '''
+    Output parameters: 
+    
+    - rendered image or matplotlib figure and axis (if return_fig_ax=True)'''
 
     # Making a 3D matrix
     u=_3D_modification(mesh,u,bc,silent=silent)
     u=u[...,-1]
 
-    #ϵ=float_info.epsilon # very small number of the order of the machine precision
+    # ϵ=float_info.epsilon # very small number of the order of the machine precision
     ϵ=mesh.h/2
 
     exx=np.zeros(len(mesh.points))
@@ -177,11 +208,6 @@ def plot_strain(mesh,u,bc,aspect='equalxy',return_fig_ax=False,silent=False):
     left=np.where(mesh.x<(x_lim[0]+ϵ))[0]
     right=np.where(mesh.x>(x_lim[1]-ϵ))[0]
     out_layers=np.hstack((top,bottom,left,right))
-    # N=0 # number of nodes in a row
-    # for i in range(0,len(mesh.points)):
-    #     if mesh.points[i,1]!=mesh.points[0,1]:
-    #         break
-    #     N=N+1
     N=mesh.ncols # number of nodes in a row
     for i in range(0,len(mesh.points)):
         if ~np.any(out_layers==i):
@@ -190,8 +216,8 @@ def plot_strain(mesh,u,bc,aspect='equalxy',return_fig_ax=False,silent=False):
             eyy[i]=(w[i+N]-w[i-N])/2/mesh.h # dw/dy
             exy[i]=1/4/mesh.h*(v[i+N]-v[i-N]+w[i+1]-w[i-1]) # 1/2*(dv/dy + dw/dx)
     # Transforming into matrix
-    X,Y=mesh.grid
     # X,Y=np.meshgrid(np.arange(mesh.x.min(),mesh.x.max()+ϵ,mesh.h),np.arange(mesh.y.min(),mesh.y.max()+ϵ,mesh.h))
+    X,Y=mesh.grid
     EXX=np.zeros(X.shape)
     EYY=np.zeros(Y.shape)
     EXY=np.zeros(X.shape)
@@ -215,25 +241,31 @@ def plot_strain(mesh,u,bc,aspect='equalxy',return_fig_ax=False,silent=False):
     # Plot
     #fig1,(ax1,ax2)=plt.subplots(nrows=1,ncols=2,subplot_kw=dict(projection='3d'))
     fig1,(ax1,ax2,ax3)=plt.subplots(nrows=1,ncols=3,subplot_kw=dict(projection='3d'))
+
+    ax1.azim=-120
+    ax2.azim=-120
+    ax3.azim=-120
+    fig1.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     ax1.plot_surface(X=X[1:-1,1:-1],Y=Y[1:-1,1:-1],Z=EXX[1:-1,1:-1],cmap='jet',rstride=1,cstride=1)
-    ax1.set_title('Strain Plot (x)')
-    ax1.set_xlabel(f'x ({mesh.unit})')
-    ax1.set_xlabel(f'y ({mesh.unit})')
-    ax1.set_zlabel('$\epsilon_x$')
+    ax1.set_title('Strain Plot (x)',{'fontsize':24})
+    ax1.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax1.set_ylabel(f'y ({mesh.unit})',fontsize=18)
+    ax1.set_zlabel('$\epsilon_x$',fontsize=18)
     ax1.set_aspect(aspect)
 
     ax2.plot_surface(X=X[1:-1,1:-1],Y=Y[1:-1,1:-1],Z=EYY[1:-1,1:-1],cmap='jet',rstride=1,cstride=1)
-    ax2.set_title('Strain Plot (y)')
-    ax2.set_xlabel(f'x ({mesh.unit})')
-    ax2.set_xlabel(f'y ({mesh.unit})')
-    ax2.set_zlabel('$\epsilon_y$')
+    ax2.set_title('Strain Plot (y)',{'fontsize':24})
+    ax2.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax2.set_ylabel(f'y ({mesh.unit})',fontsize=18)
+    ax2.set_zlabel('$\epsilon_y$',fontsize=18)
     ax2.set_aspect(aspect)
 
     ax3.plot_surface(X=X[1:-1,1:-1],Y=Y[1:-1,1:-1],Z=EXY[1:-1,1:-1],cmap='jet',rstride=1,cstride=1)
-    ax3.set_title('Strain Plot (xy)')
-    ax3.set_xlabel(f'x ({mesh.unit})')
-    ax3.set_xlabel(f'y ({mesh.unit})')
-    ax3.set_zlabel('$\epsilon_{xy}$')
+    ax3.set_title('Strain Plot (xy)',{'fontsize':24})
+    ax3.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax3.set_ylabel(f'y ({mesh.unit})',fontsize=18)
+    ax3.set_zlabel('$\epsilon_{xy}$',fontsize=18)
     ax3.set_aspect(aspect)
 
     if return_fig_ax==True:
@@ -244,25 +276,29 @@ def plot_strain(mesh,u,bc,aspect='equalxy',return_fig_ax=False,silent=False):
         
     plt.show()
 
-def plot_damage(mesh,phi,method='pcolormesh',return_fig_ax=False):
+def plot_damage(mesh:pd.Mesh,phi:np.ndarray,method:str='pcolormesh',return_fig_ax:bool=False,fig_max_size_cm:tuple[float|int,float|int]=[40.64,40.64]) -> None:
     '''Input parameters:
     
-    - mesh: 
-    - phi: 
+    - mesh: peridynamic mesh generated with Mesh
+    - phi: damage index
     - method: 
-        - "pcolormesh": 
-        - "pcolor": 
+        - "pcolormesh": default matplotlib meshing method (recommended)
+        - "pcolor": slower, use if pcolormesh fails
+    - return_fig_ax: if False (default), renders image. Else, returns figure and axis
+    - fig_max_size_cm: maximum size in centimeters allowed for the picture before any aspect ratio rule kicks in
     
-    Output parameters: '''
+    Output parameters: 
+    
+    - rendered image or matplotlib figure and axis (if return_fig_ax=True)'''
 
-    #ϵ=float_info.epsilon # very small number of the order of the machine precision
+    # ϵ=float_info.epsilon # very small number of the order of the machine precision
     ϵ=mesh.h/2
 
-    #X,Y=np.meshgrid(np.arange(mesh.x.min(),mesh.x.max()+ϵ,mesh.h),np.arange(mesh.y.min(),mesh.y.max()+ϵ,mesh.h))
+    # X,Y=np.meshgrid(np.arange(mesh.x.min(),mesh.x.max()+ϵ,mesh.h),np.arange(mesh.y.min(),mesh.y.max()+ϵ,mesh.h))
     X,Y=mesh.grid
     # PHI=np.zeros(X.shape)
 
-    #sz=X.T.shape
+    # sz=X.T.shape
     sz=X.shape
 
     for n in range(0,phi.shape[1]):
@@ -298,15 +334,18 @@ def plot_damage(mesh,phi,method='pcolormesh',return_fig_ax=False):
     #             PHI[i,j]=np.nan
 
     fig,ax=plt.subplots()
+
+    fig.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     if method=='pcolormesh':
         cax=ax.pcolormesh(X,Y,PHI,cmap='jet')#,vmin=0,vmax=1,norm='linear'
     elif method=='pcolor':
         cax=ax.pcolor(X,Y,PHI,cmap='jet')
     else:
         raise NameError('Expected methods are: "pcolormesh" and "pcolor"')
-    ax.set_title('Damage index')
-    ax.set_xlabel(f'x ({mesh.unit})')
-    ax.set_xlabel(f'y ({mesh.unit})')
+    ax.set_title('Damage index',{'fontsize':24})
+    ax.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax.set_ylabel(f'y ({mesh.unit})',fontsize=18)
     ax.set_aspect(1)
     fig.colorbar(cax)
     
@@ -316,18 +355,20 @@ def plot_damage(mesh,phi,method='pcolormesh',return_fig_ax=False):
         
     plt.show()
 
-def plot_crack(mesh,phi,dt,data_dump=80,return_fig_ax=False):
+def plot_crack(mesh:pd.Mesh,phi:np.ndarray,dt,data_dump:int=80,return_fig_ax:bool=False,fig_max_size_cm:tuple[float|int,float|int]=[40.64,40.64]) -> None:
     '''Input parameters:
     
-    - mesh: 
-    - phi: 
-    - n_final: 
-    - dt: 
-    - data_dump: 
+    - mesh: peridynamic mesh generated with Mesh
+    - phi: damage index
+    - dt: time interval
+    - data_dump: timesteps to dump data
+    - return_fig_ax: if False (default), renders image. Else, returns figure and axis
+    - fig_max_size_cm: maximum size in centimeters allowed for the picture before any aspect ratio rule kicks in
     
-    Output parameters: '''
+    Output parameters: 
+    
+    - rendered image or matplotlib figure and axis (if return_fig_ax=True)'''
 
-    # data_dump=80 # Every 80 timesteps
     n_final=phi.shape[1]
     if n_final<data_dump:
         data_dump=n_final
@@ -359,20 +400,40 @@ def plot_crack(mesh,phi,dt,data_dump=80,return_fig_ax=False):
                 tip[0]=set_dam
     # Plot the velocity
     fig,ax=plt.subplots()
+
+    fig.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     ax.plot(np.arange(0,samples+1)*(data_dump*dt),V_l)
-    ax.set_title('Velocity plot')
-    ax.set_xlabel(f'Simulation time')
-    ax.set_xlabel(f'Velocity of the crack tip ({mesh.unit}/s)')
+    ax.set_title('Velocity plot',{'fontsize':24})
+    ax.set_xlabel(f'Simulation time',fontsize=18)
+    ax.set_ylabel(f'Velocity of the crack tip ({mesh.unit}/s)',fontsize=18)
     ax.set_aspect(1)
 
     if return_fig_ax==True:
         plt.close()
         return fig,ax
         
-
     plt.show()
 
-def plot_energy(mesh,energy,aspect='equalxy',return_fig_ax=False):
+def plot_energy(mesh:pd.Mesh,energy:pd.general_functions.Energy,aspect:str='equalxy',return_fig_ax:bool=False,fig_max_size_cm:tuple[float|int,float|int]=[40.64,40.64],legend_loc:str='lower right',legend_bbox_to_anchor:tuple[float|int,float|int,float|int,float|int]=(1,1,0,0),legend_framealpha:float|int=1,legend_edgecolor:str='grey') -> None:
+    '''Input parameters:
+    
+    - mesh: peridynamic mesh generated with Mesh
+    - energy - energy object with the following attributes:
+        - W: macro-elastic energy
+        - KE: kinect energy
+        - EW: external work
+    - aspect:
+        - "equalxy": x and y have the same aspect ratio (recommended)
+        - "equal": x, y and z have the same aspect ratio
+        - "auto": automatically chooses aspect ratios to fill image space with a "fuller" graphic (use if the others make the image difficult to see)
+    - return_fig_ax: if False (default), renders image. Else, returns figure and axis
+    - fig_max_size_cm: maximum size in centimeters allowed for the picture before any aspect ratio rule kicks in
+    - legend_loc, legend_bbox_to_anchor, legend_framealpha, legend_edgecolor: legend parameters
+    
+    Output parameters: 
+    
+    - rendered image or matplotlib figure and axis (if return_fig_ax=True)'''
 
     ϵ=mesh.h/2
     n_final=energy.W.shape[1]
@@ -395,65 +456,38 @@ def plot_energy(mesh,energy,aspect='equalxy',return_fig_ax=False):
                 WW[i,j]=np.nan
 
     fig1,ax1=plt.subplots(nrows=1,ncols=1,subplot_kw=dict(projection='3d'))
+
+    ax1.azim=-120
+    fig1.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
     ax1.plot_surface(X=X,Y=Y,Z=WW,cmap='jet',rstride=1,cstride=1)
-    ax1.set_title('Strain Energy Density')
-    ax1.set_xlabel(f'x ({mesh.unit})')
-    ax1.set_xlabel(f'y ({mesh.unit})')
-    ax1.set_zlabel('W (J/m)')
+    ax1.set_title('Strain Energy Density',{'fontsize':24})
+    ax1.set_xlabel(f'x ({mesh.unit})',fontsize=18)
+    ax1.set_ylabel(f'y ({mesh.unit})',fontsize=18)
+    ax1.set_zlabel(f'Energy (J/{mesh.unit})',fontsize=18)
     ax1.set_aspect(aspect)
 
     # Total energy convolution
     t=np.arange(1,n_final+1) # number of time steps
     fig2,ax2=plt.subplots()
-    ax2.plot(t,np.sum(energy.W,axis=0),label='Strains energy')
+
+    fig2.set_size_inches(np.array(fig_max_size_cm)/2.54)
+
+    ax2.plot(t,np.sum(energy.W,axis=0),label='Strain energy')
     ax2.plot(t,np.sum(energy.KE,axis=0),label='Kinect energy')
     ax2.plot(t,np.sum(energy.EW,axis=0),label='External work')
     ax2.plot(t,np.sum(energy.W+energy.KE-energy.EW,axis=0),label='Total internal energy') # Total energy for each point
-    ax2.set_title('Strain Energy Density')
-    ax2.set_xlabel(f'Time step')
-    ax2.set_xlabel(f'Energy (')
-    ax2.legend()
-    # if aspect=='equalxy':
-    #     aspect=1
-    # ax2.set_aspect(aspect)
+    ax2.set_title('Energy Revolution',{'fontsize':24})
+    ax2.set_xlabel(f'Time step',fontsize=18)
+    ax2.set_ylabel(f'Energy (J/{mesh.unit})',fontsize=18)
+    ax2.legend(loc=legend_loc,bbox_to_anchor=legend_bbox_to_anchor,framealpha=legend_framealpha,edgecolor=legend_edgecolor)
 
     if return_fig_ax==True:
         figs=[fig1,fig2]
         axs=[ax1,ax2]
-        plt.close()
+        plt.close(fig1)
+        plt.close(fig2)
         return figs,axs
         
     plt.show()
-
-# def PostProcessing(mesh,u,n,bc,energy,phi,dt=0,silent=False):
-#     '''Input parameters:
-    
-#     - mesh: 
-#     - u: <-- u_n from solver_QuasiStatic
-#     - n: number of load steps <-- n_tot from solver_QuasiStatic
-#     - bc: 
-#     - energy: 
-#     - phi: 
-#     - dt:
-#     - silent: 
-    
-#     Output parameters: '''
-
-#     #x=mesh.points
-#     #idb=bc.idb
-
-
-#     if u.size>0:
-#         # Making a 3D matrix
-#         u=_3D_modification(mesh,u,bc,silent=silent)
-#         # Plot the displacement and strain map
-#         displacementPlot(mesh,u[...,n-1],scaleFactor='auto')
-#         strainPlot(mesh,u[...,n-1],silent=silent) # To be perfected
-
-#     # Plot the damage index
-#     if phi.size>0:
-#         damagePlot(mesh,phi[:,n-1])
-#         # Plot the crack properties
-#         # if dt>0:
-#         #     trackCrack(mesh,phi,n,dt)
     
