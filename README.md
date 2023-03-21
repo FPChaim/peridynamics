@@ -3,8 +3,8 @@
 Python code for solving some 2D peridynamic problems based on Tulio Patriota's [PDLAB](https://github.com/TulioVBP/PDLAB). It was done for my mechanical engineergin college's degree and it's not complete and probably contains a few bugs here and there.
 
 <p align="center">
-    <img alt="Mesh displacement" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOQ8rSkIkdjI11dPkESGFjhb5qop6YDXR1zsfjW2O596dUKlD8pO4MyJUzKqmZVU3nCYAKrzEcMcZOqQL8LZGaVlS9FGYQ=w3946-h2680" width="45%" style=vertical-align:middle></a>
-    <img alt="Displacement plot" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOSms0qgC9GhpH6mIi2IemEhR10GCc20igHFOEMHsJDYpZFQyJs8zl_qaMZI7-8HeleS7vuUt2jBoZ6MzhEJ1h1JRu55=w3726-h1797" width="45%" style=vertical-align:middle></a>
+  <img alt="Mesh displacement" src="https://drive.google.com/uc?export=view&id=1dBVF3lN_ycHI779PncKD0NapPyDFknlF" width="45%" style=vertical-align:middle></a>
+  <img alt="Displacement plot" src="https://drive.google.com/uc?export=view&id=1dBbBI_FBvdIrM2jXz8ev-I5i5qlQ8XQF" width="45%" style=vertical-align:middle></a>
 </p>
 
 ![Language](https://img.shields.io/github/languages/top/FPChaim/peridynamics?color=blue)
@@ -31,19 +31,19 @@ Python code for solving some 2D peridynamic problems based on Tulio Patriota's [
 One can follow the following diagram when using the code. For a more in-depth explanation, please see examples in the folder [notebooks](notebooks).
 
 <p align="center">
-  <img alt="Diagram" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOSVI9ONGfJfaPeTbxC8d9AH2-EUaMigt82ghbJPx84DZT6lxW0LW_PWsVnArYowzETu_S1x4060JYUsbxRrTkYrj82fRg=w3124-h1604" width="60%"></a>
+  <img alt="Diagram" src="https://drive.google.com/uc?export=view&id=1d9WzpWQ1i7MAjVk0RdOxzlrubNwkXKei" width="60%"></a>
 </p>
 
 ## Libraries
 
-Consist of import the *peridynamics* library and any other needed library such as *numpy* and *matplotlib*.
+Consist of importing the *peridynamics* library and any other needed library such as *numpy* and *matplotlib*.
 
 ## Material constants and peridynamics parameters
 
 It's needed to specify the material Young's modulus, Poisson's ratio, density and energy release rate. The peridynamics parameters needed are: horizon, mesh ratio and two influence function parameters.
 
 <p align="center">
-  <img alt="Influence function example: cubic polynomial" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOQqcPs3aCPE6rLRJO4M3883wvwbJjbLCUqeo6_iCVpwhGld_yPbKDofCDI7VXEUxs1_r4xIDlrroAw3ybEqMOfwYYeo=w1597-h1597" width="60%"></a>
+  <img alt="Influence function example: cubic polynomial" src="https://drive.google.com/uc?export=view&id=1dG1Ms3TaKX0rauCSWDwmjU61_MvccEl3" width="60%"></a>
 </p>
 
 ## Mesh
@@ -51,8 +51,8 @@ It's needed to specify the material Young's modulus, Poisson's ratio, density an
 The mesh is an instantiated object containing the mesh points, plus with conventional attributes and methods, such as plotting. It's possible to create both rectangular and non rectangular meshes.
 
 <p align="center">
-    <img alt="Non rectangular mesh" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOQ7ymAmFPJiLQ5ZQTqJ5ppyq0UIv6aesO2qujNxBmY4eyDFE02acvZvsFbt9yR_pzPTPj5otJdvA1r68sRm-GLbgYKh=w3871-h3676" width="45%" style=vertical-align:middle></a>
-    <img alt="Rectangular mesh" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOReSW5z7kv4lqb589ac9_X_jtmbKL7anuV532Q0OG7P2x3LIQE2zK79rYLInoEyEKgTCcWIvFuzlbhshftmszfRCssq7A=w3998-h1082" width="45%" style=vertical-align:middle></a>
+  <img alt="Rectangular mesh" src="https://drive.google.com/uc?export=view&id=1dFLh3SLez50fPNlY7lpI7ZzN9DUlfUMt" width="45%" style=vertical-align:middle></a>
+  <img alt="Non rectangular mesh" src="https://drive.google.com/uc?export=view&id=1dFekgeq9XYy5WBlCuL2k13lMygJaf90w" width="45%" style=vertical-align:middle></a>
 </p>
 
 ## Family and Partial Area
@@ -64,7 +64,7 @@ The peridynamic family is also an instantiated object containing useful informat
 Here we put a combination of prescribed body forces, displacements or velocities, dependind on the application and the solver used. It's also possible to define the initial crack segment.
 
 <p align="center">
-  <img alt="Boundary Conditions" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOSnEEl7u6ayja8lmUDaUnlz482G9udmWH12uxVviiaqSzRXQYe4A9bpBnwIep3cLA56zFENGwapCBYBPjKLfOk5PAU89w=w3998-h1268" width="60%"></a>
+  <img alt="Boundary Conditions" src="https://drive.google.com/uc?export=view&id=1dEkTWAVuCIuQP5npY-ZbNsv3Vw9dlQxb" width="60%"></a>
 </p>
 
 ## Model
